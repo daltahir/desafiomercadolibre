@@ -1,0 +1,8 @@
+2019-12-11 03:28:07 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "BRAIN" ya existe
+Table "BRAIN" already exists; SQL statement:
+CREATE TABLE brain ( id INT AUTO_INCREMENT PRIMARY KEY, dna VARCHAR(4000) NOT NULL , ismutant boolean NOT NULL ) [42101-200]
+2019-12-11 03:28:52 jdbc[3]: exception
+org.h2.jdbc.JdbcSQLSyntaxErrorException: Tabla "BRAIN" ya existe
+Table "BRAIN" already exists; SQL statement:
+CREATE TABLE brain ( id INT AUTO_INCREMENT PRIMARY KEY, dna VARCHAR(4000) NOT NULL , ismutant boolean NOT NULL ) [42101-200]

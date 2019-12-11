@@ -1,25 +1,27 @@
 package com.daltahir.mutant.controller;
 
 
+
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.daltahir.mutant.dao.IBrainDao;
+import com.daltahir.mutant.entity.Brain;
 import com.daltahir.mutant.model.Dna;
-import com.fasterxml.jackson.annotation.JsonFormat;
-import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.daltahir.mutant.model.Stats;
+
 
 
 
@@ -27,6 +29,26 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @RestController
 @RequestMapping("/api/v1")
 public class Mutant {
+	
+	  @Autowired
+	  private IBrainDao proxy; 
+	
+	  @GetMapping(path="/stats") 
+	  public ResponseEntity<Stats> status(){
+		  Stats stat = new Stats();
+		  ResponseEntity<Stats> ret =new ResponseEntity<Stats>(stat,HttpStatus.OK);
+		  stat.setCountMutant(proxy.countByisMutant(true));
+		  stat.setCountHuman(proxy.countByisMutant(false));
+		  double mut=stat.getCountMutant();
+		  double hum = stat.getCountHuman();
+		  if(mut+hum>0) {
+		  stat.setRatioMutant(mut/(mut+hum));
+		  }
+		  else
+			  stat.setRatioMutant(0);
+		  return  ret;
+	  }
+	
 	  @PostMapping(path="/mutant", 
 			  consumes= {MediaType.APPLICATION_JSON_VALUE,
 					  MediaType.TEXT_PLAIN_VALUE
@@ -34,31 +56,60 @@ public class Mutant {
 			  produces= {
 					  MediaType.APPLICATION_XML_VALUE,
 					  MediaType.APPLICATION_JSON_VALUE
-			  })
+			  }) 
 	  public ResponseEntity<String> validMutant(
 			 @RequestBody Dna dna) {
-
-		 String retorno="OK";
+		  String retorno="OK";
+		  Brain brain = new Brain();
+		  String cadena= Arrays.deepToString(dna.getDna());
+		  brain.setDna(cadena);
+		  List<Brain> consultaBrain = proxy.findBydna(cadena);
+		 //si existe cadena, entonces retornamos el valor que ya habiamos guardado, no se actualiza
+		  if(consultaBrain.size()>0) {
+			  for(Brain nodo:consultaBrain) {
+				  if(nodo.isMutant()) {
+					  
+					 return new ResponseEntity<String>(retorno,HttpStatus.OK);  
+				  }
+				  else {
+					  retorno ="No es mutante ";
+					return new ResponseEntity<String>(retorno,HttpStatus.FORBIDDEN);  
+				  }
+			  }
+		  }
+		  
+		  ResponseEntity<String> ret;
+		  
 		  if(dna.getDna()==null)
 		  {
 			  retorno="Cadena no es válida, no puede ser nula";
-			  return new ResponseEntity<String>(retorno,HttpStatus.FORBIDDEN);
+			  ret= new ResponseEntity<String>(retorno,HttpStatus.FORBIDDEN);
 		  }
 		  if(!isDNAValid(dna.getDna()))
 		  {
 			  retorno="Cadena no es válida, sólo se permiten secuencias [A,C,G,T]";
-			  return new ResponseEntity<String>(retorno,HttpStatus.FORBIDDEN);
+			  ret= new ResponseEntity<String>(retorno,HttpStatus.FORBIDDEN);
 		  }
 		  if(isMutant(dna.getDna())) {
-			  return new ResponseEntity<String>(retorno,HttpStatus.OK);
+			  brain.setMutant(true);
+			  
+			  ret= new ResponseEntity<String>(retorno,HttpStatus.OK);
 		  }
 		  else
 		  {
+			  brain.setMutant(false);
 			  retorno ="No es mutante ";
-			  return new ResponseEntity<String>(retorno,HttpStatus.FORBIDDEN);  
+			  ret= new ResponseEntity<String>(retorno,HttpStatus.FORBIDDEN);  
 		  }
+		
+		  proxy.save(brain);
+		  return ret;
+		  
 	  }
-	  static boolean isDNAValid(String[] dna){
+	  
+
+	  
+	  public boolean isDNAValid(String[] dna){
 			for(String cadena:dna){
 				Pattern patron =Pattern.compile("[^ACGT]");
 				Matcher encaja=patron.matcher(cadena);
@@ -69,7 +120,8 @@ public class Mutant {
 			}
 			return true;
 			}
-	  static boolean isMutant(String[] dna) {
+	  
+	  public boolean isMutant(String[] dna) {
 			String[] dnaT= new String[dna.length];
 			String[] dnaO= new String[dna.length*2-1];
 			String[] dnaV= new String[dna.length*2-1];
