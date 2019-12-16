@@ -17,6 +17,7 @@
 <code>docker run -d -p8080:8080 desafioml</code>
 
 <h2>invocación</h2>
+<b>mutant</b>
 <code>
 curl -X POST \
   http://localhost:8080/api/v1/mutant \
@@ -25,4 +26,8 @@ curl -X POST \
 "dna": ["ATGCGA","CAGTGC","TTATGT","AGAAGG","CCCCTA","TCACTG"]
 }'</code>
 
-
+<b>status</b>
+<code>
+curl -X GET \
+  http://18.222.125.243:8080/api/v1/stats
+</code>
